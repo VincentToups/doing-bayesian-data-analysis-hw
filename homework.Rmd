@@ -1,0 +1,882 @@
+Chatper 2
+=========
+
+> Exercise 2.1
+> [Purpose: To get you actively manipulating mathematical models of probabilities.]
+> Suppose we have a four-sided die from a board game. On a tetrahedral
+> die, each face is an equilateral triangle. When you roll the die, it
+> lands with one face down and the other three faces visible as a
+> three-sided pyramid. The faces are numbered 1– 4, with the value of
+> the bottom face printed (as clustered dots) at the bottom edges of all
+> three visible faces. Denote the value of the bottom face as
+> x. Consider the following three mathematical descriptions of the
+> probabilities of x. Model A: p( x) = 1/ 4. Model B: p( x) =
+> x/ 10. Model C: p( x) = 12/( 25x). For each model, determine the value
+> of p( x) for each value of x. Describe in words what kind of bias (or
+> lack of bias) is expressed by each model.
+
+```{R}
+
+p1 <- function(x) 1/4;
+p2 <- function(x) x/10;
+p3 <- function(x) 12/(25*x);
+
+x <- c(1,2,3,4);
+
+results <- rbind(p1(x),p2(x),p3(x))
+
+results
+```
+
+Exactly as we expect.
+
+```
+rowSums(results)
+
+```
+
+The probabilities for each type of die sum to 1, as they must.
+
+The first die is unbiased, the second is increasingly likely to fall
+on larger numbered sides, and the final die reverses this trend,
+though it doesn't recapitulate exactly the proportions.
+
+> Exercise 2.2
+> [Purpose: To get you actively thinking about how data cause credibilities to shift.]
+> Suppose we have the tetrahedral die introduced in the previous
+> exercise, along with the three candidate models of the die's
+> probabilities. Suppose that initially, we are not sure what to believe
+> about the die. On the one hand, the die might be fair, with each face
+> landing with the same probability. On the other hand, the die might be
+> biased, with the faces that have more dots landing down more often
+> (because the dots are created by embedding heavy jewels in the die, so
+> that the sides with more dots are more likely to land on the
+> bottom). On yet another hand, the die might be biased such that more
+> dots on a face make it less likely to land down (because maybe the
+> dots are bouncy rubber or protrude from the surface). So, initially,
+> our beliefs about the three models can be described as p( A) = p( B) =
+> p( C) = 1/ 3. Now we roll the die 100 times and find these results:
+> #1' s = 25, #2' s = 25, #3' s = 25, #4' s = 25. Do these data change
+> our beliefs about the models? Which model now seems most likely?
+> Suppose when we rolled the die 100 times we found these results: #1' s
+> = 48, #2' s = 24, #3' s = 16, #4' s = 12. Now which model seems most
+> likely?
+
+In the first case we expect die 1, in the second we expect die 3 for
+more or less obvious reasons.
+
+We've skipped chapter 3 because we know R already.
+
+Chapter 4
+=========
+
+> Exercise 4.1
+> [Purpose: To gain experience with the apply function in R, while dealing with a concrete example of computing conditional probabilities.]
+> The eye-color hair-color data from Table 4.1 are built into R as the
+> array named HairEyeColor. The array is frequencies of eye and hair
+> color for males and females. Run the following code in R:
+
+```{R}
+show( HairEyeColor ) # Show data
+EyeHairFreq = apply( HairEyeColor, c("Eye","Hair"), sum ) # Sum across sex
+EyeHairProp = EyeHairFreq / sum( EyeHairFreq ) # joint proportions, Table 4.1
+show( round( EyeHairProp , 2 ) )
+HairFreq = apply( HairEyeColor , c("Hair") , sum ) # Sum across sex and eye
+HairProp = HairFreq / sum( HairFreq ) # marginal proportions, Table 4.1
+show( round( HairProp , 2 ) )
+EyeFreq = apply( HairEyeColor , c("Eye") , sum ) # Sum across sex and eye
+EyeProp = EyeFreq / sum( EyeFreq ) # marginal proportions, Table 4.1
+show( round( EyeProp , 2 ) )
+EyeHairProp["Blue",] / EyeProp["Blue"] # conditional prob, Table 4.2
+```
+
+```
+apply( HairEyeColor, c("Eye","Hair"), sum ) 
+```
+
+As the comment says, this sums Eye and Hair color counts across sex,
+eliminating the sex dimension.
+
+```
+EyeHairProp = EyeHairFreq / sum( EyeHairFreq ) # joint proportions, Table 4.1
+```
+
+Get the total observations and divide the counts from the previous
+step to produce proportions.
+
+```
+HairFreq = apply( HairEyeColor , c("Hair") , sum ) # Sum across sex and eye
+```
+
+As above, but now sum over eye color as well. Ditto for next line as
+well.
+
+```
+EyeHairProp["Blue",] / EyeProp["Blue"] # conditional prob, Table 4.2
+```
+
+If we want the probability of each hair color given that one's eye
+color is blue, then we need to extract the probabilities for blue eyes
+and divide them by the probability of having blue eyes regardless. 
+
+> Exercise 4.2
+> [Purpose: To give you some experience with random number generation in R.]
+> Modify the coin flipping program in Section 4.5 RunningProportion.R
+> to simulate a biased coin that has p( H) = 0.8. Change the height of
+> the reference line in the plot to match p( H). Comment your
+> code.
+
+```{R}
+library(ggplot2);
+
+`++` <- function(...){
+    args <- list(...);
+    reduce(`+`,args);
+}
+
+flipSimData <- function(n,p.heads){
+    flips <- sample( x = c( 0,1), prob = c( 1-p.heads, p.heads), size = n, replace = TRUE);
+    cumulative <- cumsum(flips);
+    n <- seq(length(flips));
+    data.frame(flip=flips,heads=cumulative,n=n,p.heads=cumulative/n);
+}
+
+plotFlipSimData <- function(df,lp = 0.5){
+    `++`(ggplot(df,aes(n,p.heads)),
+         geom_line(),
+         geom_point(fill='transparent',color="blue",stroke=1,shape=21),
+         scale_x_continuous(trans = 'log10'),
+         ylim(0,1),
+         geom_hline(yintercept=lp,color="blue"),
+         labs(x="Flip Number",
+              y="Proportion Heads",
+              title="Running Proportion of Heads"));    
+}
+
+n <- 500;
+h.p <- 0.8;
+graphics.off()
+p <- plotFlipSimData(flipSimData(n,h.p),h.p);
+p
+
+```
+
+The above is sufficiently similar to the figure in the text.
+
+> Exercise 4.3
+> [Purpose: To have you work through an example of the logic presented in Section 4.2.1.2.]
+> Determine the exact probability of drawing a 10 from a shuffled
+> pinochle deck. (In a pinochle deck, there are 48 cards. There are six
+> values: 9, 10, Jack, Queen, King, Ace. There are two copies of each
+> value in each of the standard four suits: hearts, diamonds, clubs,
+> spades.) 
+> (A) What is the probability of getting a 10? 
+> (B) What is the probability of getting a 10 or Jack?
+
+```{R}
+
+values <- c("9","10","Jack","Queen","King","Ace");
+suits <- c("♥","♦","♣","♠");
+r <- c(1,2);
+
+```
+
+There are 8 tens and 48 cards. 
+
+```{R}
+8/48
+```
+
+One sixth.
+
+There are 8 tens and eight jacks. So the probability of getting either
+is twice the probability of getting one.
+
+```{R}
+16/48
+```
+
+One third.
+
+> Exercise 4.4 Purpose: To give you hands-on experience with a simple
+> probability density function, in R and in calculus, and to
+> reemphasize that density functions can have values larger than 1.
+> Consider a spinner with a [0,1] scale on its circumference. Suppose
+> that the spinner is slanted or magnetized or bent in some way such
+> that it is biased, and its probability density function is p( x) =
+> 6x( 1 − x) over the interval x [0,1]. 
+> (A) Adapt the program integralOfDensity.R to plot this density
+> function and approximate its integral. Comment your code. Be careful
+> to consider values of x only in the interval [0,1]. Hint: You can
+> omit the first couple of lines regarding meanval and sdval, because
+> those parameter values pertain only to the normal distribution. Then
+> set xlow = 0 and xhigh = 1, and set dx to some small value.
+> (B) Derive the exact integral using calculus. Hint: See the example,
+> Equation 4.7.
+> (C) Does this function satisfy Equation 4.3?
+> (D) From inspecting the graph, what is the maximal value of p( x)?
+
+```{R}
+f <- function(x) 6*x*(1-x);
+x <- seq(from=0,to=1,length.out=1000);
+df <- data.frame(x=x,v=f(x));
+ggplot(df,aes(x,v))+geom_line();
+ni <- integrate(f,0,1,subdivisions=1000);
+```
+
+The numerical integral is approximately 1. The max value is 1.5.
+
+The definite integral is easiest to calculate if we distribute the 6x
+across the second set of terms and integrate each term separately.
+
+```{R}
+g <- function(x) 3*x*x - 2*x*x*x
+```
+
+The integral is thus g(1)-g(0)
+
+This is one by inspection.
+
+> Exercise 4.5 Purpose: To have you use a normal curve to describe
+> beliefs.  It’s also handy to know the area under the normal curve
+> between μ and σ.
+> 
+> (A) Adapt the code from IntegralOfDensity.R to determine
+> (approximately) the probability mass under the normal curve from x = μ
+> − σ to x = μ + σ. Comment your code. Hint: Just change xlow and xhigh
+> appropriately, and change the text location so that the area still
+> appears within the plot.
+> 
+> (B) Now use the normal curve to describe the following belief. Suppose
+> you believe that women’s heights follow a bell-shaped distribution,
+> centered at 162 cm with about two-thirds of all women having heights
+> between 147 and 177 cm. What should be the μ and σ parameter values?
+
+```{R}
+
+g <- function(m,s) {
+    function(x) exp(-(x-m)*(x-m)/(2*s*s))/sqrt(2*pi*s*s) 
+}
+
+ni <- integrate(g(0,1),-1,1,subdivisions=1000)
+
+```
+
+This is 0.68 as we expect.
+
+By inspection, thus, we need
+
+```{R}
+
+height_w <- g(162,162-147)
+ni <- integrate(height_w,147,177,subdivisions=1000)
+
+```
+
+If we want to get closer to 2/3 we can formalize things like this:
+
+```{R}
+
+h <- function(s) {
+    m <- integrate(g(162,s),147,177)$value - 0.6666
+    m*m
+}
+
+so <- optimize(h,lower=10,upper=40)$minimum;
+
+height_w <- g(162,so)
+ni <- integrate(height_w,147,177,subdivisions=1000)
+
+x <- seq(from=0,to=250,length.out=1000);
+df <- data.frame(x=x,height=height_w(x));
+ggplot(df,aes(x,height))+geom_line()+labs(x="Female Height (cm)",y="Prob. Density");
+
+```
+
+That is, σ is about 15.50727.
+
+Exercise 4.6 Purpose: Recognize and work with the fact that Equation
+4.9 can be solved for the joint probability, which will be crucial for
+developing Bayes' theorem.  School children were surveyed regarding
+their favorite foods. Of the total sample, 20% were 1st graders, 20%
+were 6th graders, and 60% were 11th graders. For each grade, the
+following table shows the proportion of respondents that chose each of
+three foods as their favorite: From that information, construct a
+table of joint probabilities of grade and favorite food. Also, say
+whether grade and favorite food are independent or not, and how you
+ascertained the answer. Hint: You are given p( grade) and p( food |
+grade). You need to determine p( grade, food).
+
+Our table is thus:
+
+```{R}
+
+conditionals <- matrix(c(0.3,0.6,0.1,0.6,0.3,0.1,0.3,0.1,0.6),nrow=3,ncol=3,byrow=TRUE,dimnames=list(grade=c("1","6","11"),food=c("ice.cream","fruit","french.fries")));
+proportions <- c(p1,p6,p11);
+conditionals
+
+```
+
+Note that this table is the conditional probabilities. To construct
+the joint probabilities, we need to multiply things out by the
+appropriate proportion for each grade.
+
+```{R}
+
+joints <- tbl*matrix(rep(proportions,3),nrow=3,ncol=3,byrow=FALSE)
+
+```
+
+From the joint table we can calculate the probability of a given
+choice of food.
+
+```{R}
+p_food <- apply(joints,"food",sum)
+p_grade <- apply(joints,"grade",sum)
+
+```
+
+Now, are grade and food independent? If they were, then we'd expect
+
+```
+    p(food)p(grade) = p(food,grade)
+```
+
+```{R}
+
+for (food in names(p_food)){
+    for (grade in names(p_grade)){
+        print(sprintf("%s, grade %s: product: %0.2f, joint %0.2f",food, grade, p_food[[food]]*p_grade[[grade]],joints[grade,food][[1]]));
+    }
+}
+
+```
+
+These sum to one, as we expect them to.
+
+Now, if favorite food and grade are truly independent, the we expect:
+
+    p(food)p(grade) = p(food,grade)
+    
+
+This isn't true, which we can also see by inspection.
+
+Chapter 5
+=========
+
+> Exercise 5.1 
+> Purpose: Iterative application of Bayes' rule, and seeing
+> how posterior probabilities change with inclusion of more data.  This
+> exercise extends the ideas of Table 5.4, so at this time, please
+> review Table 5.4 and its discussion in the text. Suppose that the same
+> randomly selected person as in Table 5.4 gets re-tested after the
+> first test result was positive, and on the re-test, the result is
+> negative. When taking into account the results of both tests, what is
+> the probability that the person has the disease? Hint: For the prior
+> probability of the re-test, use the posterior computed from the Table
+> 5.4. Retain as many decimal places as possible, as rounding can have a
+> surprisingly big effect on the results. One way to avoid unnecessary
+> rounding is to do the calculations in R.
+
+We know the prior probability for a random person from the population
+to have the condition is 1/1000.
+
+```{R}
+prior <- c(1/1000,999/1000);
+```
+
+Furthermore, we have a single observation of a positive test. We know
+that, given a person has the condition, they test positive, is 0.99
+
+```
+p(+|s) = 0.99
+p(+|w) = 0.05
+```
+
+From this we can infer that 
+
+```
+p(-|s) = 1-0.99
+p(-|w) = 1-0.05
+```
+
+If we observe person with a single positive result and we know they
+are selected at random, we can use Bayes' Rule to update our prior.
+
+```
+
+p(s|+) = p(+|s)p(s)/p(+)
+
+```
+
+We can thus calculate:
+
+```{R}
+
+p_after_one_positive <- 0.99*(1/1000)/(0.05*(999/1000)+0.99*(1/1000))
+
+```
+
+This matches the results given in the chapter. Our new prior
+probability is thus:
+
+```{R}
+posterior1 <- c(0.01943463,1-0.01943463);
+```
+
+Now we simply apply Bayes rule again.
+
+We want 
+
+```
+p(s|-) = p(-|s)p(s)/p(-)
+```
+
+Where our prior is our previous posterior.
+
+```{R}
+p_after_negative = 0.01*p_after_one_positive/(0.5*p_after_one_positive + 0.99*(1-p_after_one_positive))
+
+```
+
+This is about `0.0001982161`. This is smaller probability again, as we
+expect it to be.
+
+> Exercise 5.2 Purpose: Getting an intuition for the previous results by
+> using “natural frequency” and “Markov” representations (A) Suppose
+> that the population consists of 100,000 people. Compute how many
+> people would be expected to fall into each cell of Table 5.4. To
+> compute the expected frequency of people in a cell, just multiply the
+> cell probability by the size of the population.
+
+```{R}
+
+n = 100000;
+p_sick = 1/1000;
+n_sick = n*p_sick;
+n_well = n - n_sick;
+p_positive_sick = 0.99;
+p_positive_well = 0.05;
+p_negative_sick = 1-p_positive_sick;
+p_negative_well = 1-p_positive_well;
+n_sick_and_positive = n_sick*p_positive_sick;
+n_sick_and_negative = n_sick*p_negative_sick;
+n_well_and_positive = n_well*p_positive_well;
+n_well_and_negative = n_well*p_negative_well;
+
+tbl = matrix(c(n_sick_and_positive,n_well_and_positive,n_sick_and_negative,n_well_and_negative),nrow=2,ncol=2,byrow=TRUE,dimnames=list('health'=c('sick','well'),diag=c('pos','neg')));
+```
+
+(B) How many have the disease given that their test is positive? 
+
+```{R}
+n_sick_and_positive/(n_sick_and_positive+n_well_and_positive)
+```
+ My intuition is to calculate the result. 
+ 
+> (C) Now we’ll consider a related representation of the probabilities
+> in terms of natural frequencies, which is especially useful when we
+> accumulate more data. This type of representation is called a “Markov”
+> representation by Krauss, Martignon, and Hoffrage (1999). Suppose now
+> we start with a population of N = 10,000,000 people. We expect 99.9%
+> of them (i.e., 9,990,000) not to have the disease, and just 0.1%
+> (i.e., 10,000) to have the disease. Now consider how many people we
+> expect to test positive. Of the 10,000 people who have the disease,
+> 99%, (i.e., 9,900) will be expected to test positive. Of the 9,990,000
+> people who do not have the disease, 5% (i.e., 499,500) will be
+> expected to test positive. Now consider re-testing everyone who has
+> tested positive on the first test. How many of them are expected to
+> show a negative result on the retest? Use this diagram to compute your
+> answer:
+
+```{R}
+n <- 1000000;
+p_sick <- 1/1000;
+n_sick <- n*p_sick;
+n_well <- n - n_sick;
+p_positive_sick <- 0.99;
+p_positive_well <- 0.05;
+p_negative_sick <- 1-p_positive_sick;
+p_negative_well <- 1-p_positive_well;
+n_sick_and_positive <- n_sick*p_positive_sick;
+n_sick_and_negative <- n_sick*p_negative_sick;
+n_well_and_positive <- n_well*p_positive_well;
+n_well_and_negative <- n_well*p_negative_well;
+
+tbl <- matrix(c(n_sick_and_positive,n_well_and_positive,n_sick_and_negative,n_well_and_negative),nrow<-2,ncol<-2,byrow<-TRUE,dimnames<-list('health'<-c('sick','well'),diag<-c('pos','neg')));
+```
+
+We don't need a diagram.
+
+```{R}
+n_positive <- n_sick_and_positive + n_well_and_positive;
+n_positive_negative <- n_sick_and_positive*p_negative_sick + n_well_and_positive*p_negative_well
+p_positive_negative <- n_positive_negative/n_positive;
+
+```
+
+About 93% of the results should be negative.
+
+> (D) Use the diagram in the previous part to answer this: What
+> proportion of people, who test positive at first and then negative on
+> retest, actually have the disease? In other words, of the total number
+> of people at the bottom of the diagram in the previous part (those are
+> the people who tested positive then negative), what proportion of them
+> are in the left branch of the tree? How does the result compare with
+> your answer to Exercise 5.1?
+
+```{R}
+n_positive_negative_sick <- n_sick_and_positive*p_negative_sick;
+n_positive_negative_sick/n_positive_negative;
+
+```
+
+This comes to `0.0002085862` which is about `0.0001982161`, with the
+difference chalked up to rounding.
+
+> Exercise 5.3 Purpose: To see a hands-on example of data-order
+> invariance.  Consider again the disease and diagnostic test of the
+> previous two exercises.
+> 
+> (A) Suppose that a person selected at random from the population gets
+> the test and it comes back negative. Compute the probability that the
+> person has the disease.
+> 
+> (B) The person then gets re-tested, and on the second test the result
+> is positive. Compute the probability that the person has the
+> disease. How does the result compare with your answer to Exercise 5.1?
+
+
+```{R}
+
+p_sick <- 1/1000;
+p_well <- 1-p_sick;
+p_positive_sick <- 0.99;
+p_positive_well <- 0.05;
+p_negative_sick <- 1-p_positive_sick;
+p_negative_well <- 1-p_positive_well;
+
+```
+
+We want to know p(sick|negative). From Bayes we know that this is 
+
+```
+p(negative|sick)*p(sick)/p(negative);
+```
+
+```{R}
+
+p_sick_negative_test <- p_negative_sick*p_sick/(p_sick*p_negative_sick + p_well*p_negative_well)
+p_well_negative_test <- 1-p_sick_negative_test;
+
+```
+`1.053674e-05` is very small.
+
+We have a new prior with which we want to calculate p(sick|positive), which is
+```
+p(positive|sick)*p(sick)/p(positive)
+
+```
+
+```{R}
+
+p_positive_sick*p_sick_negative_test/(p_sick_negative_test*p_positive_sick+p_well_negative_test+p_positive_well);
+
+```
+
+`9.934643e-06` which is small on account of the low naive probability
+combined with the negative test. 
+
+Exercise 5.4
+[Purpose: To gain intuition about Bayesian updating by using BernGrid.]
+Open the program BernGridExample.R. You will notice there are several
+examples of using the function BernGrid. Run the script. For each
+example, include the R code and the resulting graphic and explain what
+idea the example illustrates. Hints: Look back at Figures 5.2 and 5.3,
+and look ahead to Figure 6.5. Two of the examples involve a single
+flip, with the only difference between the examples being whether the
+prior is uniform or contains only two extreme options. The point of
+those two examples is to show that a single datum implies little when
+the prior is vague, but a single datum can have strong implications
+when the prior allows only two very different possibilities.
+
+```{R}
+
+source("./BernGridExample.R");
+graphics.off()
+
+```
+
+All of these examples follow the same logic: a prior distribution is
+given, a data set of some sort is described, and Bayes' rule is used
+to calculate the posterior distribution, which depends on the given
+likelihood function. Some of these are discrete while others are
+parameterized probability distributions but the logic remains the same
+each time.
+
+Chapter 6
+=========
+
+> Exercise 6.1 -Purpose: For you to see the influence of the prior in
+> each successive flip, and for you to see another demonstration that
+> the posterioris invariant under re-orderings of the data.- For this
+> exercise, use the R function explained in Section 6.6
+> (BernBeta.R). (Don’t forget to source the function before calling it.)
+> Notice that the function returns the posterior beta values each time
+> it is called, so you can use the returned values as the prior values
+> for the next function call.
+> 
+> (A) Start with a prior distribution that expresses some uncertainty
+> that a coin is fair: beta( θ | 4, 4). Flip the coin once; suppose we
+> get a head. What is the posterior distribution?
+> 
+> (B) Use the posterior from the previous flip as the prior for the next
+> flip. Suppose we flip again and get a head. Now what is the new
+> posterior? (Hint: If you type post = BernBeta( c( 4,4), c( 1)) for the
+> first part, then you can type post = BernBeta( post, c( 1)) for the
+> next part.)
+> 
+> (C) Using that posterior as the prior for the next flip, flip a third
+> time and get a tail. Now what is the new posterior? (Hint: Type post =
+> BernBeta( post, c( 0)).)
+> 
+> (D) Do the same three updates but in the order T, H, H instead of H,
+> H, T. Is the final posterior distribution the same for both orderings
+> of the flip results?
+
+Most of these are trivial given the analytical work we've done so far.
+
+```{R}
+source("./BernBeta.R");
+bb = BernBeta;
+
+pa = bb(c(4,4),c(1))
+pa
+```
+
+```{R}
+pb = bb(pa,c(1));
+pb
+```
+
+```{R}
+pc = bb(pb,c(0))
+pc
+```
+
+```{R}
+
+Reduce(bb,c(0,1,1),c(4,4))
+
+```
+
+This is `(6,5)`, the same as pc. What a surprise!
+
+> Exercise 6.2 -Purpose: Connecting HDIs to the real world, with
+> iterative data collection.- Suppose an election is approaching, and
+> you are interested in knowing whether the general population prefers
+> candidate A or candidate B. There is a just-published poll in the
+> newspaper, which states that of 100 randomly sampled people, 58
+> preferred candidate A and the remainder preferred candidate B.
+> 
+> (A) Suppose that before the newspaper poll, your prior belief was a
+> uniform distribution. What is the 95% HDI on your beliefs after
+> learning of the newspaper poll results?
+> 
+> (B) You want to conduct a follow-up poll to narrow down your
+> estimate of the population’s preference. In your follow-up poll, you
+> randomly sample 100 other people and find that 57 prefer candidate A
+> and the remainder prefer candidate B. Assuming that people's
+> opinions haven't changed between polls, what is the 95% HDI on the
+> posterior.
+
+It seems to me that there is probably an analytic way to stab at this
+problem, given the simplicity of a uniform prior and the potential of
+approximating one using a beta distribution. However, it seems we're
+meant to attack this numerically.
+
+```{R}
+Data = c(rep(1,58), rep(0,100-58));
+pTheta = rep(1/1000,1000);
+posterior = BernGrid(Theta, pTheta, Data, plotType ="Bars", showCentTend ="None", showHDI = TRUE, showpD = FALSE );
+
+```
+
+The HDI is `[.482,.673]`.
+
+The posterior is now the prior:
+
+```{R}
+d2 = c(rep(1,57),rep(0,100-57));
+posterior2 = BernGrid(Theta, posterior, d2, plotType ="Bars", showCentTend ="None", showHDI = TRUE, showpD = FALSE );
+```
+
+The results are `[.507, .642]`. This makes intuitive sense as the second poll was almost identical to the first, which out to have narrowed our results.
+
+> Exercise 6.3
+> 
+> -Purpose: Apply the Bayesian method to real data analysis. These data
+> are representative of real data( Kruschke, 2009).-
+> 
+> Suppose you train people in a simple learning experiment, as
+> follows. When people see the two words, “radio” and “ocean,” on the
+> computer screen, they should press the F key on the computer
+> keyboard. They see several repetitions and learn the response
+> well. Then you introduce another correspondence for them to learn:
+> Whenever the words “radio” and “mountain” appear, they should press
+> the J key on the computer keyboard. You keep training them until they
+> know both correspondences well. Now you probe what they’ve learned by
+> asking them about two novel test items. For the first test, you show
+> them the word “radio” by itself and instruct them to make the best
+> response (F or J) based on what they learned before. For the second
+> test, you show them the two words “ocean” and “mountain” and ask them
+> to make the best response. You do this procedure with 50 people. Your
+> data show that for “radio” by itself, 40 people chose F and 10 chose
+> J. For the word combination “ocean” and “mountain,” 15 chose F and 35
+> chose J. Are people biased toward F or toward J for either of the two
+> probe types? To answer this question, assume a uniform prior, and use
+> a 95% HDI to decide which biases can be declared to be
+> credible. (Consult Chapter 12 for how to declare a parameter value to
+> be not credible.)
+
+```{R}
+data = c(rep(1,40), rep(0,10));
+ptheta = rep(1/1000,1000);
+theta = seq(from=0,to=1,length.out=1000);
+posterior = BernGrid(theta,
+ ptheta,
+ data,
+ plotType ="Bars",
+ showCentTend ="None",
+ showHDI = TRUE,
+ showpD = FALSE);
+
+```
+
+```{R}
+data = c(rep(1,15), rep(0,35));
+ptheta = rep(1/1000,1000);
+theta = seq(from=0,to=1,length.out=1000);
+posterior = BernGrid(theta,
+ ptheta,
+ data,
+ plotType ="Bars",
+ showCentTend ="None",
+ showHDI = TRUE,
+ showpD = FALSE);
+```
+
+Let's say the rope here is -0.4 rto 0.6. Then in the first case we can
+reject the hypothesis that there is no bias and in the second we
+cannot.
+
+> Exercise 6.4
+> 
+> -Purpose: To explore an unusual prior and learn about the beta
+> distribution in the process.-
+> 
+> Suppose we have a coin that we know comes from a magic-trick store,
+> and therefore we believe that the coin is strongly biased either
+> usually to come up heads or usually to come up tails, but we don’t
+> know which. Express this belief as a beta prior. (Hint: See Figure
+> 6.1, upper-left panel.) Now we flip the coin 5 times and it comes up
+> heads in 4 of the 5 flips. What is the posterior distribution? (Use
+> the R function of Section 6.6 (BernBeta.R) to see graphs of the prior
+> and posterior.)
+
+```{R}
+
+library(ggplot2)
+p = c(0.1,0.1);
+g = seq(from=0,to=1,length.out=1000);
+ggplot(data.frame(x=g,y=dbeta(g,p[[1]],p[[2]])),aes(x,y))+geom_line()
+
+BernBeta(p,c(1,1,1,1,0))
+
+```
+
+`a=4.1,b=1.1`
+
+> Exercise 6.5
+> 
+> -Purpose: To get hands on experience with the goal of predicting the
+> next datum, and to see how the prior influences that prediction.-
+> 
+> (A) Suppose you have a coin that you know is minted by the government
+> and has not been tampered with. Therefore you have a strong prior
+> belief that the coin is fair. You flip the coin 10 times and get 9
+> heads. What is your predicted probability of heads for the 11th flip?
+> Explain your answer carefully; justify your choice of prior. (B) Now
+> you have a different coin, this one made of some strange material and
+> marked (in fine print) “Patent Pending, International Magic, Inc.” You
+> flip the coin 10 times and get 9 heads. What is your predicted
+> probability of heads for the 11th flip? Explain your answer carefully;
+> justify your choice of prior. Hint: Use the prior from Exercise 6.4.
+
+In the first case we ought to be strongly sure that our coin is fair,
+so the mean of our prior should be 0.5 and the concentration should be
+high. I've flipped thousands of coints from the mint in my life and
+never experienced a bias, so a reasonable order of magnitude for a+b
+is 1000.
+
+```{R}
+
+plotbeta <- function(a,b){
+    g <- seq(from=0,to=1,length.out=1000);
+    ggplot(data.frame(x=g,y=dbeta(g,a,b)),aes(x,y))+geom_line();
+}
+
+mkdata <- function(h,cnt){
+    c(rep(1,h),rep(0,cnt-h));
+}
+
+kappa = 1000;
+mu = 0.5;
+prior = c(mu*kappa,(1-mu)*kappa);
+plotbeta(prior[[1]],prior[[2]])
+
+posterior = BernBeta(prior,Data=mkdata(9,10),showHDI=TRUE)
+
+```
+
+From what we know about the relative certainties of our prior and
+data, we could have predicted this result: our observations just
+barely shift our posterior to the right.
+
+```{R}
+
+f <- function(a,b){
+    function(x) {
+        x*dbeta(x,a,b)
+    }
+}
+integrate(f(509,501),0,1,subdivisions=1000)
+```
+
+So we expect heads just slightly more than 50% of the time, given this
+data.
+
+In the second case we suspect a biased coin. We can produce such a distribution by choosing a very small kappa.
+
+```{R}
+
+kappa = 0.0001;
+mu = 0.5;
+prior = c(mu*kappa,(1-mu)*kappa);
+plotbeta(prior[[1]],prior[[2]])
+
+posterior = BernBeta(prior,Data=mkdata(9,10),showHDI=TRUE)
+
+```
+Our posterior has shifted to the right.
+
+```{R}
+integrate(f(posterior[[1]],posterior[[2]]),0,1,subdivisions=1000)
+
+```
+
+We expect heads with a probability of about 90%.
+
+Chapter 7
+=========
+
